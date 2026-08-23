@@ -1,0 +1,28 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // صور الإعلانات
+    match /listings/{userId}/{fileName} {
+      // أي مستخدم مسجل يقرأ الصور
+      allow read: if request.auth != null;
+
+      // المستخدم يرفع صوره فقط
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        // حجم الصورة أقصاه 5 ميجا
+        && request.resource.size < 5 * 1024 * 1024
+        // نوع الملف صورة فقط
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // صور الملف الشخصي
+    match /profiles/{userId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

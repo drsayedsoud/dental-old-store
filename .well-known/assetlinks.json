@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.awlad_sakr_theta.twa",
+        "sha256_cert_fingerprints": ["C8:38:D4:F5:93:83:C8:20:C2:CA:BA:6B:50:7D:5B:66:5C:16:BA:57:F0:66:99:FD:86:61:55:A8:1F:C1:4C:33"]
+      }
+    }]

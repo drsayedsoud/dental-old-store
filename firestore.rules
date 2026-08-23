@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 👤 بيانات المستخدمين
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && (
+        request.auth.uid == userId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true
+      );
+    }
+
+    // 📋 الإعلانات
+    match /listings/{listingId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && request.resource.data.sellerId == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 100;
+
+      allow update: if request.auth != null && (
+        resource.data.sellerId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true ||
+        (request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['likes', 'currentTopBid', 'updatedAt', 'reports', 'reported', 'status', 'reportedBy', 'whatsappClicks']))
+      );
+
+      allow delete: if request.auth != null && (
+        resource.data.sellerId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true
+      );
+
+      // 💬 التعليقات والمزايدات
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.auth != null
+          && request.resource.data.userId == request.auth.uid
+          && exists(/databases/$(database)/documents/listings/$(listingId));
+        allow update, delete: if false;
+      }
+    }
+
+    // 🔔 الإشعارات
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId is string;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // 📊 الإحصائيات القديمة
+    match /dailyStats/{statId} {
+      allow read, write: if true;
+    }
+
+    // ⭐ التقييمات
+    match /ratings/{ratingId} {
+      allow read: if true;
+      allow create: if request.auth != null 
+        && request.resource.data.raterId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ⚙️ إعدادات الموقع
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
+    }
+
+    // 📈 إحصائيات الزوار (القسم الجديد)
+    match /analytics/{docId} {
+      // أي شخص (حتى لو زائر غير مسجل) يحق له إضافة زيارة
+      allow create: if true;
+      // فقط المدير يستطيع القراءة والتعديل والحذف
+      allow read, update, delete: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
+    }
+
+    // 🤝 نقرات التواصل والصفقات (القسم الجديد)
+    match /contact_clicks/{docId} {
+      // أي شخص يحق له الضغط على "تواصل" ليتم تسجيل الحدث
+      allow create: if true;
+      // فقط المدير يستطيع رؤية الصفقات
+      allow read, update, delete: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
+    }
+
+    // 💬 المحادثات الخاصة
+    match /chats/{chatId} {
+      allow read, write: if request.auth != null;
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+
+  }
+}

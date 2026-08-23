@@ -1,0 +1,70 @@
+function renderAds(){
+  let list = [...(APP.cachedAds || [])];
+
+  if(APP.selectedCat !== 'all') list = list.filter(a => a.category === APP.selectedCat);
+  if(APP.searchQ){
+    const q = APP.searchQ.toLowerCase();
+    list = list.filter(a => (a.title||'').toLowerCase().includes(q) || (a.description||'').toLowerCase().includes(q));
+  }
+
+  if(APP.sortBy === 'cheapest') {
+    list.sort((a,b) => (Number(a.price)||0) - (Number(b.price)||0));
+  } else if(APP.sortBy === 'expensive') {
+    list.sort((a,b) => (Number(b.price)||0) - (Number(a.price)||0));
+  } else {
+    list.sort((a,b) => {
+      const tA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+      const tB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+      return tB - tA;
+    });
+  }
+
+  $('ads-count-lbl').textContent = `${list.length} إعلان`;
+
+  if(!list.length){
+    $('ads-grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 10px;color:var(--text-muted)"><div style="font-size:2.5rem;margin-bottom:8px">🔍</div><h3>لا توجد إعلانات</h3><p>لم نجد إعلانات في هذه الفئة حالياً.</p></div>';
+    return;
+  }
+
+  const catEmoji = {mobiles:'📱',cars:'🚗',furniture:'🛋️',clothes:'👗',electronics:'💻',tools:'🔧',kids:'🧸',other:'📦', 'أجهزة طبية':'🩺'};
+  
+  $('ads-grid').innerHTML = list.map(a => {
+    const isA = a.type === 'auction';
+    const liked = (a.likes || []).includes(APP.user?.uid);
+    const price = isA ? `🔨 ${fmtNum(a.currentTopBid||a.startingPrice)} ج` : `${fmtNum(a.price)} ج`;
+    const ph = catEmoji[a.category] || '📦';
+    
+    // ملاحظة: لا نضع أي أيكونة فوق الصورة إذا كانت الصورة موجودة
+    const imgHtml = a.images && a.images[0] 
+      ? `<img src="${a.images[0].replace('/upload/', '/upload/w_500,q_auto,f_auto/')}" alt="${a.title||''}" loading="lazy">`
+      : `<div class="ad-img-ph">${ph}</div>`;
+
+    return `
+    <div class="ad-card" onclick="openAd('${a.id}')">
+      <div class="ad-img">
+        ${a.isSold ? '<div class="sold-overlay"><div class="sold-stamp-text">تم البيع</div></div>' : ''}
+        ${imgHtml}
+        <span class="ad-badge ${a.isSold?'sold-badge':(isA?'auction':'fixed')}">${a.isSold?'🤝 تم البيع':(isA?'🔨 مزاد':'💰 سعر ثابت')}</span>
+        <div class="ad-fav ${liked?'on':''}" onclick="toggleFav(event,'${a.id}')">${liked?'❤️':'🤍'}</div>
+      </div>
+      <div class="ad-body">
+        <div class="ad-title">${a.title||'بدون عنوان'}</div>
+        <div class="ad-price ${isA?'auc':''}">${price}</div>
+        <div class="ad-foot">
+          <span class="ad-area">📍 ${a.area||'أولاد صقر'} · ${maskName(a.sellerName)}</span>
+          <span class="ad-likes ${liked?'on':''}">${liked?'❤️':'🤍'} ${(a.likes||[]).length}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.toggleFav = async function(e, id){
+  e.stopPropagation();
+  requireAuthThen(async () => {
+    const ref = db.collection('listings').doc(id);
+    const snap = await ref.get();
+    const likes = snap.data()?.likes || [];
+    const added = !likes.includes(APP.user.uid);
+    await ref.update({ likes: added ? firebase.firestore.FieldValue.arrayUnion(APP.user.uid) : firebase.firestore.FieldValue.arrayRemove(APP.user.uid) });
+    toast(added ? 'تمت الإضافة للمفضلة ❤️' : 'تمت الإزالة من المفضلة', 'inf');

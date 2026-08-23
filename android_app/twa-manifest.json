@@ -1,0 +1,30 @@
+{
+  "host": "awlad-sakr-theta.vercel.app",
+  "name": "سوق المستعمل أولاد صقر",
+  "launcherName": "سوق المستعمل",
+  "themeColor": "#EA580C",
+  "navigationColor": "#F8FAFC",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#F8FAFC",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://awlad-sakr-theta.vercel.app/icon-512.png",
+  "maskableIconUrl": "https://awlad-sakr-theta.vercel.app/icon-512.png",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "webManifestUrl": "https://awlad-sakr-theta.vercel.app/manifest.json",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "android"
+  },
+  "packageId": "com.awladsakr.app",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "fallbackType": "customtabs",
+  "features": {}
+}
